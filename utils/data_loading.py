@@ -3,6 +3,7 @@ from os import listdir
 from os.path import splitext
 from pathlib import Path
 
+import cv2
 import numpy as np
 import torch
 from PIL import Image
@@ -27,11 +28,11 @@ class BasicDataset(Dataset):
 
     @staticmethod
     def preprocess(pil_img, scale, is_mask):
-        w, h = pil_img.size
-        newW, newH = int(scale * w), int(scale * h)
+        # w, h = pil_img.size
+        newW, newH = 256, 256
         assert newW > 0 and newH > 0, 'Scale is too small, resized images would have no pixel'
-        pil_img = pil_img.resize((newW, newH), resample=Image.NEAREST if is_mask else Image.BICUBIC)
-        img_ndarray = np.asarray(pil_img)
+        img_ndarray = cv2.resize(pil_img, dsize = (newW, newH), interpolation = cv2.INTER_AREA).astype('uint8')
+        # img_ndarray = np.asarray(pil_img)
 
         if not is_mask:
             if img_ndarray.ndim == 2:
@@ -47,7 +48,8 @@ class BasicDataset(Dataset):
     def load(filename):
         ext = splitext(filename)[1]
         if ext == '.npy':
-            return Image.fromarray(np.load(filename))
+            # return Image.fromarray(np.load(filename))
+            return np.load(filename)
         elif ext in ['.pt', '.pth']:
             return Image.fromarray(torch.load(filename).numpy())
         else:
@@ -55,8 +57,10 @@ class BasicDataset(Dataset):
 
     def __getitem__(self, idx):
         name = self.ids[idx]
-        mask_file = list(self.masks_dir.glob(name + self.mask_suffix + '.*'))
-        img_file = list(self.images_dir.glob(name + '.*'))
+        # mask_file = list(self.masks_dir.glob(name + self.mask_suffix + '.*'))
+        mask_file = list(self.masks_dir.glob(name + '.npy'))
+        img_file = list(self.images_dir.glob(name + '.npy'))
+        # img_file = list(self.images_dir.glob(name + '.*'))
 
         assert len(img_file) == 1, f'Either no image or multiple images found for the ID {name}: {img_file}'
         assert len(mask_file) == 1, f'Either no mask or multiple masks found for the ID {name}: {mask_file}'

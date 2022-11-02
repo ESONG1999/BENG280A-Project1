@@ -32,7 +32,7 @@ def predict_img(net,
 
         tf = transforms.Compose([
             transforms.ToPILImage(),
-            transforms.Resize((full_img.size[1], full_img.size[0])),
+            transforms.Resize((len(full_img[0]), len(full_img))),
             transforms.ToTensor()
         ])
 
@@ -46,7 +46,7 @@ def predict_img(net,
 
 def get_args():
     parser = argparse.ArgumentParser(description='Predict masks from input images')
-    parser.add_argument('--model', '-m', default='MODEL.pth', metavar='FILE',
+    parser.add_argument('--model', '-m', default='checkpoints/checkpoint_epoch20.pth', metavar='FILE',
                         help='Specify the file in which the model is stored')
     parser.add_argument('--input', '-i', metavar='INPUT', nargs='+', help='Filenames of input images', required=True)
     parser.add_argument('--output', '-o', metavar='OUTPUT', nargs='+', help='Filenames of output images')
@@ -81,7 +81,7 @@ if __name__ == '__main__':
     in_files = args.input
     out_files = get_output_filenames(args)
 
-    net = UNet(n_channels=3, n_classes=2, bilinear=args.bilinear)
+    net = UNet(n_channels=1, n_classes=2, bilinear=args.bilinear)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     logging.info(f'Loading model {args.model}')
@@ -94,14 +94,14 @@ if __name__ == '__main__':
 
     for i, filename in enumerate(in_files):
         logging.info(f'\nPredicting image {filename} ...')
-        img = Image.open(filename)
-
+        # img = Image.open(filename)
+        img = np.load(filename)
+        
         mask = predict_img(net=net,
                            full_img=img,
                            scale_factor=args.scale,
                            out_threshold=args.mask_threshold,
                            device=device)
-
         if not args.no_save:
             out_filename = out_files[i]
             result = mask_to_image(mask)
